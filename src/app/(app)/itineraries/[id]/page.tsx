@@ -303,7 +303,7 @@ function Builder() {
           <Card title={<span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-brand-600" /> 2 · Day-wise plan (route, sightseeing & night stay)</span>} bodyClass="space-y-4">
             {m.plans.length === 0 && (
               <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-                No day plans yet. Add them in <Link href="/masters?tab=transfers" className="font-semibold underline">Masters → Transfers & sightseeing</Link> (e.g. &quot;Arrival Srinagar&quot;, &quot;Srinagar → Gulmarg excursion&quot;) with Sedan / SUV / Tempo rates and the day description — then just pick them here.
+                No day plans yet. Add them in <Link href="/masters?tab=transfers" className="font-semibold underline">Masters → Transfers & sightseeing</Link> (e.g. &quot;Arrival Srinagar&quot;, &quot;Srinagar → Gulmarg excursion&quot;) with Sedan / SUV / Innova Crysta rates and the day description — then just pick them here.
               </p>
             )}
             {days.map((d, i) => {

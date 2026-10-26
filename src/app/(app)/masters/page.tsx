@@ -110,7 +110,7 @@ function Masters() {
             { key: "to_destination_id", label: "Night stay at (city)", type: "select", options: dests, list: true },
             { key: "rate_sedan", label: "Sedan ₹", type: "money", list: true },
             { key: "rate_suv", label: "SUV ₹", type: "money", list: true },
-            { key: "rate_tempo", label: "Tempo Traveller ₹", type: "money", list: true },
+            { key: "rate_crysta", label: "Innova Crysta ₹", type: "money", list: true },
             { key: "supplier_id", label: "Vehicle supplier", type: "select", options: supOf("transport") },
             { key: "description", label: "Day details shown on the itinerary", type: "textarea" },
             { key: "sort", label: "Sort order", type: "number" },

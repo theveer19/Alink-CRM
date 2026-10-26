@@ -47,7 +47,7 @@ export type Itinerary = {
   grand_total: number; show_item_prices: boolean; overview: string | null; inclusions: string | null; exclusions: string | null;
   terms: string | null; cover_image: string | null; valid_till: string | null; share_token: string; booking_id: string | null;
   created_at: string; created_by: string | null;
-  vehicle_type: "sedan" | "suv" | "tempo" | "none"; vehicles: number; pickup_point: string | null; pickup_time: string | null;
+  vehicle_type: "sedan" | "suv" | "crysta" | "none"; vehicles: number; pickup_point: string | null; pickup_time: string | null;
   arrival_details: string | null; drop_point: string | null; drop_time: string | null; departure_details: string | null;
 };
 
@@ -100,7 +100,7 @@ export type Hotel = { id: string; name: string; destination_id: string | null; s
 export type Activity = { id: string; name: string; destination_id: string | null; supplier_id: string | null; duration: string | null; cost_adult: number; cost_child: number; description: string | null; is_active: boolean };
 export type Transfer = {
   id: string; name: string; transfer_type: string; destination_id: string | null; to_destination_id: string | null; supplier_id: string | null;
-  vehicle_type: string | null; capacity: number; cost: number; rate_sedan: number; rate_suv: number; rate_tempo: number;
+  vehicle_type: string | null; capacity: number; cost: number; rate_sedan: number; rate_suv: number; rate_crysta: number;
   description: string | null; is_active: boolean; sort: number;
 };
 export type InclusionItem = {

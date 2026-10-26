@@ -174,7 +174,7 @@ export function AddItemModal({ open, onClose, onSave, masters, trip, dayNo, item
             <Field label="Transfer / cab" className="col-span-2">
               <Select value={refId} onChange={(e) => pick(e.target.value)}>
                 <option value="">Choose… (or type title below)</option>
-                {masters.transfers.filter((t) => t.is_active && (!dest || t.destination_id === dest)).map((t) => <option key={t.id} value={t.id}>{t.name} · Sedan {inr(vehicleRate(t, "sedan"))} / SUV {inr(vehicleRate(t, "suv"))} / Tempo {inr(vehicleRate(t, "tempo"))}</option>)}
+                {masters.transfers.filter((t) => t.is_active && (!dest || t.destination_id === dest)).map((t) => <option key={t.id} value={t.id}>{t.name} · Sedan {inr(vehicleRate(t, "sedan"))} / SUV {inr(vehicleRate(t, "suv"))} / Innova Crysta {inr(vehicleRate(t, "crysta"))}</option>)}
               </Select>
             </Field>
             <Field label="Vehicles"><Input type="number" min={1} value={d.vehicles ?? 1} onChange={(e) => { setManualCost(false); set("vehicles")(e); }} /></Field>

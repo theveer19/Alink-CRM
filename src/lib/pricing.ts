@@ -73,20 +73,19 @@ export function nightsBetween(start: string | null, end: string | null) {
   return Math.max(0, Math.round((b - a) / 86400000));
 }
 
-export type VehicleKey = "sedan" | "suv" | "tempo";
-const CAP: Record<VehicleKey, number> = { sedan: 4, suv: 6, tempo: 12 };
+export type VehicleKey = "sedan" | "suv" | "crysta";
+const CAP: Record<VehicleKey, number> = { sedan: 4, suv: 6, crysta: 6 };
 
-/** Smallest vehicle that fits everyone (children over 5 counted as seats). */
+/** Smallest vehicle that fits everyone: Sedan up to 4, SUV up to 6, then multiple SUVs. */
 export function suggestVehicle(pax: number): { type: VehicleKey; count: number } {
   const n = Math.max(1, Math.ceil(n0(pax)));
   if (n <= CAP.sedan) return { type: "sedan", count: 1 };
-  if (n <= CAP.suv) return { type: "suv", count: 1 };
-  if (n <= CAP.tempo) return { type: "tempo", count: 1 };
-  return { type: "tempo", count: Math.ceil(n / CAP.tempo) };
+  // bigger groups: more SUVs (Innova Crysta is a premium choice, picked manually)
+  return { type: "suv", count: Math.ceil(n / CAP.suv) };
 }
 
-export function vehicleRate(t: { rate_sedan?: number | null; rate_suv?: number | null; rate_tempo?: number | null; cost?: number | null }, type: string) {
-  const v = type === "suv" ? t.rate_suv : type === "tempo" ? t.rate_tempo : t.rate_sedan;
+export function vehicleRate(t: { rate_sedan?: number | null; rate_suv?: number | null; rate_crysta?: number | null; cost?: number | null }, type: string) {
+  const v = type === "suv" ? t.rate_suv : type === "crysta" ? t.rate_crysta : t.rate_sedan;
   return n0(v) || n0(t.cost);
 }
 

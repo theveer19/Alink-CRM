@@ -81,8 +81,9 @@ test("nights between dates, vehicle suggestion and rate", () => {
   assert.equal(nightsBetween("2026-12-31", "2027-01-02"), 2);
   assert.deepEqual(suggestVehicle(2), { type: "sedan", count: 1 });
   assert.deepEqual(suggestVehicle(6), { type: "suv", count: 1 });
-  assert.deepEqual(suggestVehicle(9), { type: "tempo", count: 1 });
-  assert.deepEqual(suggestVehicle(20), { type: "tempo", count: 2 });
-  assert.equal(vehicleRate({ rate_sedan: 2500, rate_suv: 3500, rate_tempo: 6000 }, "suv"), 3500);
+  assert.deepEqual(suggestVehicle(9), { type: "suv", count: 2 });
+  assert.deepEqual(suggestVehicle(20), { type: "suv", count: 4 });
+  assert.equal(vehicleRate({ rate_sedan: 2500, rate_suv: 3500, rate_crysta: 4500 }, "suv"), 3500);
+  assert.equal(vehicleRate({ rate_sedan: 2500, rate_suv: 3500, rate_crysta: 4500 }, "crysta"), 4500);
   assert.equal(vehicleRate({ rate_sedan: 0, cost: 1800 }, "sedan"), 1800);
 });

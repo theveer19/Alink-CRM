@@ -1,6 +1,6 @@
 -- =====================================================================
 -- A LINK CRM — 003 itinerary v2
--- Day plans (transfers / sightseeing with Sedan / SUV / Tempo rates),
+-- Day plans (transfers / sightseeing with Sedan / SUV / Innova Crysta rates),
 -- night-stay based hotels, pickup / drop, inclusion & exclusion master.
 -- Run after 001 and 002. Safe to re-run.
 -- =====================================================================
@@ -10,7 +10,14 @@ alter table public.transfers add column if not exists transfer_type text not nul
 alter table public.transfers add column if not exists to_destination_id uuid references public.destinations(id) on delete set null;
 alter table public.transfers add column if not exists rate_sedan numeric(12,2) not null default 0;
 alter table public.transfers add column if not exists rate_suv numeric(12,2) not null default 0;
-alter table public.transfers add column if not exists rate_tempo numeric(12,2) not null default 0;
+-- (an earlier draft used a Tempo Traveller column — rename it if it exists)
+do $$ begin
+  if exists (select 1 from information_schema.columns where table_schema='public' and table_name='transfers' and column_name='rate_tempo')
+     and not exists (select 1 from information_schema.columns where table_schema='public' and table_name='transfers' and column_name='rate_crysta') then
+    alter table public.transfers rename column rate_tempo to rate_crysta;
+  end if;
+end $$;
+alter table public.transfers add column if not exists rate_crysta numeric(12,2) not null default 0;
 alter table public.transfers add column if not exists sort int not null default 0;
 alter table public.transfers drop constraint if exists transfers_type_check;
 alter table public.transfers add constraint transfers_type_check
@@ -58,7 +65,8 @@ alter table public.itineraries add column if not exists drop_point text;
 alter table public.itineraries add column if not exists drop_time text;
 alter table public.itineraries add column if not exists departure_details text;
 alter table public.itineraries drop constraint if exists itineraries_vehicle_check;
-alter table public.itineraries add constraint itineraries_vehicle_check check (vehicle_type in ('sedan','suv','tempo','none'));
+update public.itineraries set vehicle_type = 'crysta' where vehicle_type = 'tempo';
+alter table public.itineraries add constraint itineraries_vehicle_check check (vehicle_type in ('sedan','suv','crysta','none'));
 
 -- 4. Day fields: which day plan, and where the night is spent
 alter table public.itinerary_days add column if not exists day_plan_id uuid references public.transfers(id) on delete set null;
