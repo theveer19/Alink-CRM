@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { ITEM_TYPES, MEAL_PLANS } from "@/lib/constants";
+import { ITEM_TYPES, MEAL_PLANS, VEHICLE_TYPES } from "@/lib/constants";
 import type { Activity, Destination, Hotel, ItineraryItem, Supplier, Transfer } from "@/lib/types";
-import { activityCost, hotelCost, pickHotelRate, vehiclesNeeded, type HotelRate } from "@/lib/pricing";
+import { activityCost, hotelCost, pickHotelRate, suggestVehicle, vehicleRate, type HotelRate } from "@/lib/pricing";
 import { addDays, inr } from "@/lib/utils";
 import { Button, Field, Input, Modal, Select, Textarea } from "./ui";
 
@@ -55,7 +55,7 @@ export function AddItemModal({ open, onClose, onSave, masters, trip, dayNo, item
     }
     if (type === "transfer") {
       const t = masters.transfers.find((x) => x.id === refId);
-      if (t) return Number(d.vehicles) * Number(t.cost);
+      if (t) return Number(d.vehicles || 1) * vehicleRate(t, d.vehicle_type || "sedan");
     }
     return null;
   }, [type, rate, d, refId, masters]);
@@ -78,8 +78,9 @@ export function AddItemModal({ open, onClose, onSave, masters, trip, dayNo, item
       setD((x) => ({ ...x, description: a?.description, duration: a?.duration }));
     } else if (type === "transfer") {
       const t = masters.transfers.find((x) => x.id === id);
-      setTitle(t ? `${t.name} – ${t.vehicle_type}` : ""); setSupplier(t?.supplier_id ?? "");
-      setD((x) => ({ ...x, vehicle_type: t?.vehicle_type, vehicles: vehiclesNeeded(trip.adults + trip.children, t?.capacity ?? 4) }));
+      const sug = suggestVehicle(trip.adults + trip.children);
+      setTitle(t ? t.name : ""); setSupplier(t?.supplier_id ?? "");
+      setD((x) => ({ ...x, vehicle_type: x.vehicle_type || sug.type, vehicles: sug.count }));
     }
   }
 
@@ -173,11 +174,15 @@ export function AddItemModal({ open, onClose, onSave, masters, trip, dayNo, item
             <Field label="Transfer / cab" className="col-span-2">
               <Select value={refId} onChange={(e) => pick(e.target.value)}>
                 <option value="">Choose… (or type title below)</option>
-                {masters.transfers.filter((t) => t.is_active && (!dest || t.destination_id === dest)).map((t) => <option key={t.id} value={t.id}>{t.name} · {t.vehicle_type} · {inr(t.cost)}</option>)}
+                {masters.transfers.filter((t) => t.is_active && (!dest || t.destination_id === dest)).map((t) => <option key={t.id} value={t.id}>{t.name} · Sedan {inr(vehicleRate(t, "sedan"))} / SUV {inr(vehicleRate(t, "suv"))} / Tempo {inr(vehicleRate(t, "tempo"))}</option>)}
               </Select>
             </Field>
             <Field label="Vehicles"><Input type="number" min={1} value={d.vehicles ?? 1} onChange={(e) => { setManualCost(false); set("vehicles")(e); }} /></Field>
-            <Field label="Vehicle type"><Input value={d.vehicle_type ?? ""} onChange={set("vehicle_type")} /></Field>
+            <Field label="Vehicle type">
+              <Select value={d.vehicle_type ?? "sedan"} onChange={(e) => { setManualCost(false); set("vehicle_type")(e); }}>
+                {VEHICLE_TYPES.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
+              </Select>
+            </Field>
           </div>
         )}
 

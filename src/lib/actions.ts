@@ -2,7 +2,8 @@
 import { sb } from "@/lib/supabase/client";
 import type { Booking, Contact, Itinerary, ItineraryItem, Lead, Settings } from "@/lib/types";
 import { addDays, fmtDate, isoDate } from "@/lib/utils";
-import { invoiceTotals, quoteTotals } from "@/lib/pricing";
+import { invoiceTotals, quoteTotals, suggestVehicle } from "@/lib/pricing";
+import { VEHICLE_TYPES } from "@/lib/constants";
 import { must } from "@/lib/hooks";
 
 /** New itinerary pre-filled from a lead (or blank). Returns the new id. */
@@ -12,6 +13,11 @@ export async function createItinerary(settings: Settings, lead?: Lead | null, co
   const pick = (c: string) => tpl.find((t) => t.category === c)?.body ?? null;
   const terms = [settings.itinerary_terms, pick("cancellation") ? "Cancellation policy:\n" + pick("cancellation") : null].filter(Boolean).join("\n\n");
   const nights = lead?.nights ?? 3;
+  // default ticks from the inclusion / exclusion master (falls back to text templates)
+  const inc = (await supa.from("inclusion_items").select("kind, title").eq("is_active", true).eq("is_default", true).is("destination_id", null).order("sort")).data ?? [];
+  const incText = inc.filter((x) => x.kind === "inclusion").map((x) => x.title).join("\n") || pick("inclusion");
+  const excText = inc.filter((x) => x.kind === "exclusion").map((x) => x.title).join("\n") || pick("exclusion");
+  const veh = suggestVehicle((lead?.adults ?? 2) + (lead?.children ?? 0));
   const row = must(
     await supa.from("itineraries").insert({
       lead_id: lead?.id ?? null,
@@ -29,8 +35,10 @@ export async function createItinerary(settings: Settings, lead?: Lead | null, co
       gst_percent: settings.default_gst_percent,
       gst_mode: settings.gst_mode,
       tcs_percent: settings.default_tcs_percent,
-      inclusions: pick("inclusion"),
-      exclusions: pick("exclusion"),
+      inclusions: incText,
+      exclusions: excText,
+      vehicle_type: veh.type,
+      vehicles: veh.count,
       terms,
       valid_till: addDays(isoDate(), 7),
     }).select("id").single()
@@ -76,16 +84,37 @@ export async function convertToBooking(it: Itinerary, items: ItineraryItem[]) {
     }).select("id").single()
   );
   if (items.length) {
-    const services = items.map((i, idx) => {
-      const start = it.start_date && i.day_no ? addDays(it.start_date, i.day_no - 1) : it.start_date;
+    const pax = `${it.adults} Adults${it.children ? `, ${it.children} Children` : ""}`;
+    const services: Record<string, unknown>[] = [];
+    // all day-wise cab lines become ONE cab service (one driver / one voucher for the trip)
+    const cabIdx = items.map((i, idx) => ({ i, idx })).filter(({ i }) => i.details?.auto === "transfer");
+    items.forEach((i, idx) => {
+      if (i.details?.auto === "transfer") return;
+      const start = i.details?.check_in ?? (it.start_date && i.day_no ? addDays(it.start_date, i.day_no - 1) : it.start_date);
       const nights = Number(i.details?.nights ?? 0);
-      return {
+      const end = i.details?.check_out ?? (start && nights ? addDays(start, nights) : start);
+      services.push({
         booking_id: booking.id, service_type: ITEM_TO_SERVICE[i.item_type] ?? "other", supplier_id: i.supplier_id, title: i.title,
-        details: { ...i.details, pax: `${it.adults} Adults${it.children ? `, ${it.children} Children` : ""}` },
-        start_date: start, end_date: start && nights ? addDays(start, nights) : start,
+        details: { ...i.details, pax }, start_date: start, end_date: end,
         cost: i.cost, sell: t.lineSell[idx], sort: idx, status: "pending",
-      };
+      });
     });
+    if (cabIdx.length) {
+      const vt = VEHICLE_TYPES.find((v) => v.value === it.vehicle_type);
+      const route = cabIdx.map(({ i }) => `Day ${i.day_no}: ${i.details?.route ?? i.title}`).join("\n");
+      services.push({
+        booking_id: booking.id, service_type: "cab", supplier_id: cabIdx[0].i.supplier_id,
+        title: `${vt?.label ?? "Cab"}${it.vehicles > 1 ? ` × ${it.vehicles}` : ""} for transfers & sightseeing`,
+        details: {
+          auto: "transfer", vehicle_type: vt?.label, pax, pickup: it.pickup_point, pickup_time: it.pickup_time, drop: it.drop_point,
+          note: route,
+        },
+        start_date: it.start_date, end_date: end,
+        cost: cabIdx.reduce((a, { i }) => a + Number(i.cost), 0),
+        sell: cabIdx.reduce((a, { idx }) => a + Number(t.lineSell[idx]), 0),
+        sort: 900, status: "pending",
+      });
+    }
     must(await supa.from("booking_services").insert(services));
   }
   await supa.from("itineraries").update({ status: "accepted", booking_id: booking.id }).eq("id", it.id);

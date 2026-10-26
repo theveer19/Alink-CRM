@@ -47,9 +47,11 @@ export type Itinerary = {
   grand_total: number; show_item_prices: boolean; overview: string | null; inclusions: string | null; exclusions: string | null;
   terms: string | null; cover_image: string | null; valid_till: string | null; share_token: string; booking_id: string | null;
   created_at: string; created_by: string | null;
+  vehicle_type: "sedan" | "suv" | "tempo" | "none"; vehicles: number; pickup_point: string | null; pickup_time: string | null;
+  arrival_details: string | null; drop_point: string | null; drop_time: string | null; departure_details: string | null;
 };
 
-export type ItineraryDay = { id?: string; itinerary_id?: string; day_no: number; title: string; description: string | null; destination_id: string | null; meals: string | null };
+export type ItineraryDay = { id?: string; itinerary_id?: string; day_no: number; title: string; description: string | null; destination_id: string | null; meals: string | null; day_plan_id: string | null; stay_destination_id: string | null };
 
 export type ItineraryItem = {
   id?: string; itinerary_id?: string; day_no: number | null; sort: number; item_type: string; ref_id: string | null;
@@ -96,5 +98,13 @@ export type Supplier = { id: string; name: string; supplier_type: string; contac
 export type Destination = { id: string; name: string; country: string; state: string | null; description: string | null; image_url: string | null; is_active: boolean };
 export type Hotel = { id: string; name: string; destination_id: string | null; supplier_id: string | null; category: string | null; address: string | null; phone: string | null; email: string | null; check_in_time: string | null; check_out_time: string | null; notes: string | null; is_active: boolean };
 export type Activity = { id: string; name: string; destination_id: string | null; supplier_id: string | null; duration: string | null; cost_adult: number; cost_child: number; description: string | null; is_active: boolean };
-export type Transfer = { id: string; name: string; destination_id: string | null; supplier_id: string | null; vehicle_type: string | null; capacity: number; cost: number; description: string | null; is_active: boolean };
+export type Transfer = {
+  id: string; name: string; transfer_type: string; destination_id: string | null; to_destination_id: string | null; supplier_id: string | null;
+  vehicle_type: string | null; capacity: number; cost: number; rate_sedan: number; rate_suv: number; rate_tempo: number;
+  description: string | null; is_active: boolean; sort: number;
+};
+export type InclusionItem = {
+  id: string; kind: "inclusion" | "exclusion"; title: string; destination_id: string | null; is_default: boolean;
+  cost_adult: number; cost_child: number; sort: number; is_active: boolean;
+};
 export type TextTemplate = { id: string; category: string; title: string; body: string };

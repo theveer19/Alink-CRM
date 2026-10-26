@@ -117,3 +117,19 @@ export const ACTION_LABELS: Record<string, string> = {
 export function statusMeta<T extends { value: string }>(list: readonly T[], v: string | null | undefined): T | undefined {
   return list.find((x) => x.value === v);
 }
+
+/** Vehicle categories used for transfers & sightseeing (rates per category live in Masters → Transfers). */
+export const VEHICLE_TYPES = [
+  { value: "sedan", label: "Sedan", models: "Dzire / Etios / Aura", capacity: 4 },
+  { value: "suv", label: "SUV", models: "Innova / Ertiga / Xylo", capacity: 6 },
+  { value: "tempo", label: "Tempo Traveller", models: "12–17 seater", capacity: 12 },
+] as const;
+
+export const TRANSFER_TYPES = [
+  { value: "arrival", label: "Arrival (pickup)" },
+  { value: "sightseeing", label: "Sightseeing / excursion" },
+  { value: "intercity", label: "Transfer to another city" },
+  { value: "local", label: "Local transfer" },
+  { value: "leisure", label: "Leisure day (no vehicle)" },
+  { value: "departure", label: "Departure (drop)" },
+] as const;

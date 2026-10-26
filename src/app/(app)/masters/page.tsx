@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { BedDouble, Pencil, Plus, Trash2 } from "lucide-react";
 import { sb } from "@/lib/supabase/client";
-import { HOTEL_CATEGORIES, MEAL_PLANS } from "@/lib/constants";
+import { HOTEL_CATEGORIES, MEAL_PLANS, TRANSFER_TYPES } from "@/lib/constants";
 import { fmtDate, inr } from "@/lib/utils";
 import { Guard, useAuth } from "@/components/auth";
 import { CrudTable } from "@/components/crud-table";
@@ -20,12 +20,13 @@ function Masters() {
   const params = useSearchParams();
   const [tab, setTab] = useState(params.get("tab") ?? "destinations");
   const [dests, setDests] = useState<{ value: string; label: string }[]>([]);
-  const [sups, setSups] = useState<{ value: string; label: string }[]>([]);
+  const [sups, setSups] = useState<{ value: string; label: string; type: string }[]>([]);
+  const supOf = (...types: string[]) => sups.filter((x) => types.includes(x.type)).map(({ value, label }) => ({ value, label }));
   const [rateHotel, setRateHotel] = useState<any | null>(null);
 
   useEffect(() => {
     sb().from("destinations").select("id, name").order("name").then(({ data }) => setDests((data ?? []).map((d) => ({ value: d.id, label: d.name }))));
-    sb().from("suppliers").select("id, name").order("name").then(({ data }) => setSups((data ?? []).map((d) => ({ value: d.id, label: d.name }))));
+    sb().from("suppliers").select("id, name, supplier_type").order("name").then(({ data }) => setSups((data ?? []).map((d) => ({ value: d.id, label: d.name, type: d.supplier_type }))));
   }, [tab]);
 
   return (
@@ -33,7 +34,8 @@ function Masters() {
       <PageHeader title="Masters" subtitle="Your rate sheets and reusable data — the itinerary builder calculates costs from these" />
       <Tabs value={tab} onChange={setTab} tabs={[
         { value: "destinations", label: "Destinations" }, { value: "hotels", label: "Hotels & rates" }, { value: "suppliers", label: "Suppliers" },
-        { value: "activities", label: "Activities / sightseeing" }, { value: "transfers", label: "Transfers / cabs" },
+        { value: "transfers", label: "Transfers & sightseeing (day plans)" }, { value: "activities", label: "Activities / tickets" },
+        { value: "inclusions", label: "Inclusions / exclusions" },
         { value: "templates", label: "Text & message templates" }, { value: "sources", label: "Lead sources" },
       ]} />
 
@@ -53,7 +55,7 @@ function Masters() {
           { key: "name", label: "Hotel name", required: true, list: true },
           { key: "destination_id", label: "Destination", type: "select", options: dests, list: true },
           { key: "category", label: "Category", type: "select", options: HOTEL_CATEGORIES.map((c) => ({ value: c, label: c })), list: true },
-          { key: "supplier_id", label: "Supplier / contracting party", type: "select", options: sups },
+          { key: "supplier_id", label: "Supplier / contracting party", type: "select", options: supOf("hotel", "dmc") },
           { key: "phone", label: "Phone", list: true },
           { key: "email", label: "Email" },
           { key: "address", label: "Address", wide: true },
@@ -86,7 +88,7 @@ function Masters() {
         <CrudTable table="activities" title="Activities" searchKeys={["name", "description"]} fields={[
           { key: "name", label: "Name", required: true, list: true },
           { key: "destination_id", label: "Destination", type: "select", options: dests, list: true },
-          { key: "supplier_id", label: "Supplier", type: "select", options: sups },
+          { key: "supplier_id", label: "Supplier", type: "select", options: supOf("activity", "dmc", "other") },
           { key: "duration", label: "Duration", list: true },
           { key: "cost_adult", label: "Cost / adult", type: "money", list: true },
           { key: "cost_child", label: "Cost / child", type: "money", list: true },
@@ -96,14 +98,37 @@ function Masters() {
       )}
 
       {tab === "transfers" && (
-        <CrudTable table="transfers" title="Transfers" searchKeys={["name", "vehicle_type"]} fields={[
-          { key: "name", label: "Route / name", required: true, list: true, wide: true },
-          { key: "destination_id", label: "Destination", type: "select", options: dests, list: true },
-          { key: "supplier_id", label: "Supplier", type: "select", options: sups },
-          { key: "vehicle_type", label: "Vehicle", list: true, default: "Sedan" },
-          { key: "capacity", label: "Seats", type: "number", list: true, default: 4 },
-          { key: "cost", label: "Cost / vehicle", type: "money", list: true },
-          { key: "description", label: "Description", type: "textarea" },
+        <>
+          <p className="mb-3 rounded-lg bg-slate-100 p-3 text-xs text-slate-600">
+            Each row is one <b>day plan</b>: where the day starts, where the guest sleeps that night, what they see (description shown on the itinerary)
+            and the cab cost for each vehicle type. In the itinerary you just pick the plan for each day — title, details, night stay and cab cost fill in automatically.
+          </p>
+          <CrudTable table="transfers" title="Day plans" order="sort" searchKeys={["name", "description"]} fields={[
+            { key: "name", label: "Day plan / route name", required: true, list: true, wide: true },
+            { key: "transfer_type", label: "Type", type: "select", options: TRANSFER_TYPES.map((t) => ({ value: t.value, label: t.label })), required: true, list: true, default: "sightseeing" },
+            { key: "destination_id", label: "Starts from (city)", type: "select", options: dests, list: true },
+            { key: "to_destination_id", label: "Night stay at (city)", type: "select", options: dests, list: true },
+            { key: "rate_sedan", label: "Sedan ₹", type: "money", list: true },
+            { key: "rate_suv", label: "SUV ₹", type: "money", list: true },
+            { key: "rate_tempo", label: "Tempo Traveller ₹", type: "money", list: true },
+            { key: "supplier_id", label: "Vehicle supplier", type: "select", options: supOf("transport") },
+            { key: "description", label: "Day details shown on the itinerary", type: "textarea" },
+            { key: "sort", label: "Sort order", type: "number" },
+            { key: "is_active", label: "Active", type: "bool", list: true },
+          ]} />
+          {supOf("transport").length === 0 && <p className="mt-2 text-xs text-amber-700">Tip: add your cab operators in Suppliers with type &quot;Transport&quot; — only they appear as vehicle suppliers here.</p>}
+        </>
+      )}
+
+      {tab === "inclusions" && (
+        <CrudTable table="inclusion_items" title="Inclusions & exclusions" order="sort" searchKeys={["title"]} fields={[
+          { key: "kind", label: "Type", type: "select", required: true, list: true, default: "inclusion", options: [{ value: "inclusion", label: "✓ Inclusion" }, { value: "exclusion", label: "✗ Exclusion" }] },
+          { key: "title", label: "Text", required: true, list: true, wide: true },
+          { key: "destination_id", label: "Only for destination (blank = all trips)", type: "select", options: dests, list: true },
+          { key: "is_default", label: "Ticked by default", type: "bool", list: true },
+          { key: "cost_adult", label: "Paid add-on: cost / adult ₹", type: "money", list: true },
+          { key: "cost_child", label: "Cost / child ₹", type: "money" },
+          { key: "sort", label: "Sort order", type: "number" },
           { key: "is_active", label: "Active", type: "bool", list: true },
         ]} />
       )}

@@ -43,6 +43,53 @@ export function hotelCost(p: {
   return r2(perNight * Math.max(0, n0(p.nights)));
 }
 
+/** Date-wise hotel cost: every night picks its own season rate (a stay can cross seasons). */
+export function hotelStayCost(p: {
+  rates: HotelRate[]; hotelId: string; roomType: string; mealPlan: string; checkIn: string | null; nights: number;
+  rooms: number; extraAdults?: number; childWithBed?: number; childWithoutBed?: number;
+}) {
+  const nights = Math.max(0, Math.floor(n0(p.nights)));
+  const breakdown: { date: string | null; rate: HotelRate | undefined; cost: number }[] = [];
+  for (let i = 0; i < nights; i++) {
+    const date = p.checkIn ? addDaysIso(p.checkIn, i) : null;
+    const rate = pickHotelRate(p.rates, p.hotelId, p.roomType, p.mealPlan, date);
+    const cost = rate ? hotelCost({ nights: 1, rooms: p.rooms, rate, extraAdults: p.extraAdults, childWithBed: p.childWithBed, childWithoutBed: p.childWithoutBed }) : 0;
+    breakdown.push({ date, rate, cost });
+  }
+  const total = r2(breakdown.reduce((a, b) => a + b.cost, 0));
+  const missing = breakdown.some((b) => !b.rate);
+  return { total, breakdown, missing };
+}
+
+export function addDaysIso(date: string, days: number) {
+  const [y, m, d] = date.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return dt.toISOString().slice(0, 10);
+}
+
+export function nightsBetween(start: string | null, end: string | null) {
+  if (!start || !end) return 0;
+  const [a, b] = [start, end].map((x) => { const [y, m, d] = x.split("-").map(Number); return Date.UTC(y, m - 1, d); });
+  return Math.max(0, Math.round((b - a) / 86400000));
+}
+
+export type VehicleKey = "sedan" | "suv" | "tempo";
+const CAP: Record<VehicleKey, number> = { sedan: 4, suv: 6, tempo: 12 };
+
+/** Smallest vehicle that fits everyone (children over 5 counted as seats). */
+export function suggestVehicle(pax: number): { type: VehicleKey; count: number } {
+  const n = Math.max(1, Math.ceil(n0(pax)));
+  if (n <= CAP.sedan) return { type: "sedan", count: 1 };
+  if (n <= CAP.suv) return { type: "suv", count: 1 };
+  if (n <= CAP.tempo) return { type: "tempo", count: 1 };
+  return { type: "tempo", count: Math.ceil(n / CAP.tempo) };
+}
+
+export function vehicleRate(t: { rate_sedan?: number | null; rate_suv?: number | null; rate_tempo?: number | null; cost?: number | null }, type: string) {
+  const v = type === "suv" ? t.rate_suv : type === "tempo" ? t.rate_tempo : t.rate_sedan;
+  return n0(v) || n0(t.cost);
+}
+
 export function activityCost(adults: number, children: number, costAdult: number, costChild: number) {
   return r2(n0(adults) * n0(costAdult) + n0(children) * n0(costChild));
 }

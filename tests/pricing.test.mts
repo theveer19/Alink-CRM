@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { activityCost, financialYear, hotelCost, invoiceTotals, pickHotelRate, quoteTotals, vehiclesNeeded } from "../src/lib/pricing.ts";
+import { activityCost, financialYear, hotelCost, hotelStayCost, invoiceTotals, nightsBetween, pickHotelRate, quoteTotals, suggestVehicle, vehicleRate, vehiclesNeeded } from "../src/lib/pricing.ts";
 
 const rate = { cost_per_night: 4000, extra_adult: 1200, child_with_bed: 1000, child_without_bed: 600 };
 
@@ -61,4 +61,28 @@ test("financial year", () => {
   assert.equal(financialYear("2026-10-22"), "2026-27");
   assert.equal(financialYear("2027-02-01"), "2026-27");
   assert.equal(financialYear("2027-04-01"), "2027-28");
+});
+
+test("stay crossing seasons is priced night by night", () => {
+  const base = { hotel_id: "h", room_type: "Deluxe", meal_plan: "MAP", extra_adult: 1000, child_with_bed: 0, child_without_bed: 0 };
+  const rates = [
+    { ...base, id: "off", valid_from: null, valid_to: null, cost_per_night: 3000 },
+    { ...base, id: "peak", valid_from: "2026-12-24", valid_to: "2027-01-02", cost_per_night: 6000 },
+  ];
+  // check-in 22 Dec, 4 nights: 22,23 off-season, 24,25 peak
+  const r = hotelStayCost({ rates, hotelId: "h", roomType: "Deluxe", mealPlan: "MAP", checkIn: "2026-12-22", nights: 4, rooms: 2, extraAdults: 1 });
+  assert.equal(r.total, 2 * (2 * 3000 + 1000) + 2 * (2 * 6000 + 1000));
+  assert.equal(r.missing, false);
+  assert.equal(r.breakdown[2].date, "2026-12-24");
+});
+
+test("nights between dates, vehicle suggestion and rate", () => {
+  assert.equal(nightsBetween("2026-12-20", "2026-12-25"), 5);
+  assert.equal(nightsBetween("2026-12-31", "2027-01-02"), 2);
+  assert.deepEqual(suggestVehicle(2), { type: "sedan", count: 1 });
+  assert.deepEqual(suggestVehicle(6), { type: "suv", count: 1 });
+  assert.deepEqual(suggestVehicle(9), { type: "tempo", count: 1 });
+  assert.deepEqual(suggestVehicle(20), { type: "tempo", count: 2 });
+  assert.equal(vehicleRate({ rate_sedan: 2500, rate_suv: 3500, rate_tempo: 6000 }, "suv"), 3500);
+  assert.equal(vehicleRate({ rate_sedan: 0, cost: 1800 }, "sedan"), 1800);
 });

@@ -11,7 +11,7 @@ lead capture → follow-ups → itinerary / quotation → booking → GST invoic
 | **Leads** | Manual entry with duplicate-phone warning; **Excel / CSV import** with column mapping and duplicate skip; **FB / Insta via Google Sheet** (auto-sync); **website form / webhook**; hosted `/enquiry` page; list and **Kanban pipeline** (drag & drop); filters; bulk assign / status / delete; CSV export; lost reasons; hot / warm / cold; round-robin auto-assign. |
 | **Follow-ups** | Call, meeting, task, WhatsApp and email reminders. Overdue, today, upcoming and calendar views. Mark done with outcome, then schedule the next one. Full history on each lead's timeline. Bell notifications plus a browser popup when a follow-up is due. |
 | **Contacts** | Auto-created from leads and de-duplicated by phone. Customer details, travel history, lifetime value, balance due, preferences (hotel, meal, budget), segments and tags, passport and expiry, DOB and anniversary filters, documents. |
-| **Itinerary builder** | Day-wise plan from masters. **Auto cost**: hotel season rate × rooms × nights + extra bed / child, activity per pax, cab per vehicle. Markup as % or fixed, per-item override, discount, GST on the whole package or on the service fee only, TCS. Shows margin %. Quote versions (Revise). Share as PDF, link, WhatsApp or email. The customer can click **"I want to book this"**. |
+| **Itinerary builder** | Package-calculator style: pick travel dates (nights auto), then for each day a **day plan** from Masters (fills title, details, night-stay city and Sedan / SUV / Tempo cab cost). Hotels appear per night-stay city with only that city's hotels; cost is calculated night-by-night from season rates, check-in / check-out dates automatic. Pickup / drop points & times, inclusion / exclusion checkboxes (paid add-ons like Gondola tickets add their cost). |
 | **Bookings / Trips** | One click turns an accepted quote into a booking with its services. Services: hotel, flight, cab, tour, visa and more, with supplier, confirmation number, cost and sell. Shows profit, received, due and supplier payables. |
 | **Invoicing** | Branded GST tax invoice created automatically from a booking (package or itemized). CGST/SGST or IGST chosen by state. SAC code, TCS, amount in words, bank details, **UPI QR for the balance**. Paid / partly paid status updates automatically from payments. |
 | **Vouchers** | Hotel, flight, cab and tour vouchers, or one combined voucher. Saved as a snapshot, with a shareable link and PDF. |
@@ -27,7 +27,8 @@ Kanban pipeline · duplicate detection · round-robin assignment · unattended-l
 
 ### 1. Supabase
 1. Create a new project at supabase.com (region: Mumbai).
-2. Open **SQL Editor**, paste the whole of `supabase/001_schema.sql`, and click **Run**. The file is safe to re-run.
+2. Open **SQL Editor** and run these files one by one, in order (each is safe to re-run):
+   `supabase/001_schema.sql` → `supabase/002_hardening.sql` → `supabase/003_itinerary_v2.sql`
 3. Under **Authentication → Providers → Email**, turn **off** "Allow new users to sign up". Admins add staff from the CRM.
 4. Under **Authentication → URL Configuration**, set the Site URL to your CRM domain.
 
