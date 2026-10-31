@@ -457,6 +457,12 @@ function Composer() {
                         </select>
                       </F>
                       {d.stay_destination_id && cats.length === 0 && <p className="text-xs text-amber-700 sm:col-span-2 lg:col-span-4">No hotels in {destName(d.stay_destination_id)} yet — add them in Masters → Hotels.</p>}
+                      {hotel && rooms.length === 0 && (
+                        <p className="text-xs text-amber-700 sm:col-span-2 lg:col-span-4">
+                          {hotel.name} has no room rates yet, so Room Type is empty —{" "}
+                          <a href="/masters?tab=hotels" target="_blank" rel="noreferrer" className="font-semibold underline">add rates in Masters → Hotels → Rates</a> (room type + MAP/CP price), then reload this page.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
