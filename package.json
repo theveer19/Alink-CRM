@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --experimental-strip-types --test tests/pricing.test.mts"
+    "test": "node --experimental-strip-types --test tests/pricing.test.mts tests/package.test.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

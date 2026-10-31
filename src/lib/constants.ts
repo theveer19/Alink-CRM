@@ -79,7 +79,7 @@ export const MEAL_PLANS = [
   { value: "AP", label: "AP – All meals" },
   { value: "AI", label: "AI – All inclusive" },
 ] as const;
-export const HOTEL_CATEGORIES = ["Budget", "2 Star", "3 Star", "4 Star", "5 Star", "Resort", "Houseboat", "Homestay", "Camp"];
+export const HOTEL_CATEGORIES = ["Budget", "2 Star", "2 Star Premium", "3 Star", "3 Star Premium", "4 Star", "4 Star Premium", "5 Star", "Deluxe Houseboat", "Super Deluxe Houseboat", "Premium Houseboat", "Luxury Houseboat", "Resort", "Homestay", "Camp"];
 export const SEGMENTS = ["New", "Regular", "VIP", "Corporate", "B2B Agent", "Inactive"];
 export const EXPENSE_CATEGORIES = ["Office Rent", "Salary", "Marketing / Ads", "Electricity", "Internet / Phone", "Travel", "Software", "Commission", "Other"];
 export const DOC_TYPES = [
@@ -126,10 +126,10 @@ export const VEHICLE_TYPES = [
 ] as const;
 
 export const TRANSFER_TYPES = [
-  { value: "arrival", label: "Arrival (pickup)" },
+  { value: "arrival", label: "Arrival (day 1, from pick up city)" },
   { value: "sightseeing", label: "Sightseeing / excursion" },
   { value: "intercity", label: "Transfer to another city" },
   { value: "local", label: "Local transfer" },
   { value: "leisure", label: "Leisure day (no vehicle)" },
-  { value: "departure", label: "Departure (drop)" },
+  { value: "departure", label: "Drop (last day)" },
 ] as const;

@@ -2,50 +2,77 @@
 import { sb } from "@/lib/supabase/client";
 import type { Booking, Contact, Itinerary, ItineraryItem, Lead, Settings } from "@/lib/types";
 import { addDays, fmtDate, isoDate } from "@/lib/utils";
-import { invoiceTotals, quoteTotals, suggestVehicle } from "@/lib/pricing";
-import { VEHICLE_TYPES } from "@/lib/constants";
+import { invoiceTotals, quoteTotals } from "@/lib/pricing";
+import { occupancy } from "@/lib/package";
 import { must } from "@/lib/hooks";
 
-/** New itinerary pre-filled from a lead (or blank). Returns the new id. */
-export async function createItinerary(settings: Settings, lead?: Lead | null, contact?: Contact | null) {
+/** New package for a region (Compose Package → region card), optionally pre-filled from a lead / contact. Returns the new id. */
+export async function createPackage(settings: Settings, regionId: string, lead?: Lead | null, contact?: Contact | null) {
   const supa = sb();
-  const tpl = (await supa.from("text_templates").select("category, body").in("category", ["inclusion", "exclusion", "cancellation"])).data ?? [];
-  const pick = (c: string) => tpl.find((t) => t.category === c)?.body ?? null;
-  const terms = [settings.itinerary_terms, pick("cancellation") ? "Cancellation policy:\n" + pick("cancellation") : null].filter(Boolean).join("\n\n");
-  const nights = lead?.nights ?? 3;
-  // default ticks from the inclusion / exclusion master (falls back to text templates)
-  const inc = (await supa.from("inclusion_items").select("kind, title").eq("is_active", true).eq("is_default", true).is("destination_id", null).order("sort")).data ?? [];
-  const incText = inc.filter((x) => x.kind === "inclusion").map((x) => x.title).join("\n") || pick("inclusion");
-  const excText = inc.filter((x) => x.kind === "exclusion").map((x) => x.title).join("\n") || pick("exclusion");
-  const veh = suggestVehicle((lead?.adults ?? 2) + (lead?.children ?? 0));
+  const [reg, pts, veh, incs, dests] = await Promise.all([
+    supa.from("regions").select("*").eq("id", regionId).single(),
+    supa.from("pickup_points").select("*").eq("region_id", regionId).order("sort"),
+    supa.from("vehicles").select("id, seats").eq("is_active", true).order("sort"),
+    supa.from("inclusion_items").select("*").eq("is_active", true).order("sort"),
+    supa.from("destinations").select("id, region_id").eq("region_id", regionId),
+  ]);
+  const region = must(reg) as any;
+  const cityIds = new Set((dests.data ?? []).map((d) => d.id));
+  const inRegion = (x: any) => (!x.region_id && !x.destination_id) || x.region_id === regionId || (x.destination_id && cityIds.has(x.destination_id));
+  const incAll = (incs.data ?? []).filter(inRegion);
+  const points = pts.data ?? [];
+  const pick = points.find((p: any) => p.is_pickup) ?? points[0];
+  const drop = points.find((p: any) => p.is_drop) ?? points[0];
+  const adults = Math.max(1, lead?.adults ?? 2);
+  const occ = occupancy(adults, 0, lead?.children ?? 0);
+  const today = isoDate();
+  const start = lead?.travel_date && lead.travel_date >= today ? lead.travel_date : null;
+  const nights = Math.max(region.min_nights ?? 1, lead?.nights ?? 2);
+  const vehicles = veh.data ?? [];
+  const firstVeh = vehicles.find((v) => v.seats >= occ.total) ?? vehicles[0];
   const row = must(
     await supa.from("itineraries").insert({
       lead_id: lead?.id ?? null,
       contact_id: lead?.contact_id ?? contact?.id ?? null,
-      title: lead?.destination ? `${lead.destination} Tour Package` : "Tour Package",
-      destination: lead?.destination ?? null,
-      start_date: lead?.travel_date ?? null,
+      client_name: lead?.name ?? contact?.name ?? null,
+      title: region.name,
+      destination: region.name,
+      region_id: regionId,
+      start_date: start,
+      end_date: start ? addDays(start, nights) : null,
       nights,
-      adults: lead?.adults ?? 2,
+      adults,
+      adults_above10: 0,
+      kids: lead?.children ?? 0,
       children: lead?.children ?? 0,
       infants: lead?.infants ?? 0,
-      rooms: Math.max(1, Math.ceil((lead?.adults ?? 2) / 2)),
-      markup_type: "percent",
-      markup_value: settings.default_markup_percent,
+      rooms: occ.rooms,
+      extra_beds: occ.extra,
+      child_no_bed: occ.cnb,
+      meal_plan: "MAP",
+      pickup_point_id: pick?.id ?? null,
+      pickup_point: pick?.name ?? null,
+      drop_point_id: drop?.id ?? null,
+      drop_point: drop?.name ?? null,
+      vehicle_list: firstVeh ? [{ vehicle_id: firstVeh.id, ac: false }] : [],
+      vehicle_type: "none",
+      markup_type: "fixed",
+      markup_value: settings.default_margin_amount ?? 0,
+      margin_amount: settings.default_margin_amount ?? 0,
+      include_gst: false,
       gst_percent: settings.default_gst_percent,
-      gst_mode: settings.gst_mode,
-      tcs_percent: settings.default_tcs_percent,
-      inclusions: incText,
-      exclusions: excText,
-      vehicle_type: veh.type,
-      vehicles: veh.count,
-      terms,
-      valid_till: addDays(isoDate(), 7),
+      gst_mode: "total",
+      tcs_percent: 0,
+      inclusions: incAll.filter((x: any) => x.kind === "inclusion" && x.is_default).map((x: any) => x.title).join("\n"),
+      exclusions: incAll.filter((x: any) => x.kind === "exclusion").map((x: any) => x.title).join("\n"),
+      overview: region.description ?? null,
+      terms: [settings.itinerary_terms, region.terms].filter(Boolean).join("\n\n"),
+      valid_till: addDays(today, settings.package_validity_days || 15),
     }).select("id").single()
   );
-  // create day rows
-  const days = Array.from({ length: nights + 1 }, (_, i) => ({ itinerary_id: row.id, day_no: i + 1, title: i === 0 ? "Arrival" : i === nights ? "Departure" : `Day ${i + 1}` }));
-  await supa.from("itinerary_days").insert(days);
+  const days = Array.from({ length: nights + 1 }, (_, i) => ({ itinerary_id: row.id, day_no: i + 1, title: `Day ${i + 1}` }));
+  must(await supa.from("itinerary_days").insert(days));
+  if (lead && ["new", "contacted", "qualified"].includes(lead.status)) await supa.from("leads").update({ status: "quoted" }).eq("id", lead.id);
   return row.id as string;
 }
 
@@ -100,13 +127,13 @@ export async function convertToBooking(it: Itinerary, items: ItineraryItem[]) {
       });
     });
     if (cabIdx.length) {
-      const vt = VEHICLE_TYPES.find((v) => v.value === it.vehicle_type);
+      const vlabel = String(cabIdx[0].i.details?.vehicle_type ?? "") || "Cab";
       const route = cabIdx.map(({ i }) => `Day ${i.day_no}: ${i.details?.route ?? i.title}`).join("\n");
       services.push({
         booking_id: booking.id, service_type: "cab", supplier_id: cabIdx[0].i.supplier_id,
-        title: `${vt?.label ?? "Cab"}${it.vehicles > 1 ? ` × ${it.vehicles}` : ""} for transfers & sightseeing`,
+        title: `${vlabel} for transfers & sightseeing`,
         details: {
-          auto: "transfer", vehicle_type: vt?.label, pax, pickup: it.pickup_point, pickup_time: it.pickup_time, drop: it.drop_point,
+          auto: "transfer", vehicle_type: vlabel, pax, pickup: it.pickup_point, pickup_time: it.pickup_time, drop: it.drop_point,
           note: route,
         },
         start_date: it.start_date, end_date: end,

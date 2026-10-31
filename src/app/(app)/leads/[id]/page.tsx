@@ -9,7 +9,6 @@ import { FOLLOWUP_KINDS, LEAD_STATUSES, PRIORITIES, QUOTE_STATUSES, BOOKING_STAT
 import type { Followup, Lead } from "@/lib/types";
 import { cn, fmtDate, fmtDateTime, inr, timeAgo } from "@/lib/utils";
 import { useLoad } from "@/lib/hooks";
-import { createItinerary } from "@/lib/actions";
 import { Guard, useAuth } from "@/components/auth";
 import { LeadForm } from "@/components/lead-form";
 import { FollowupForm } from "@/components/followup-form";
@@ -84,14 +83,7 @@ function LeadDetail() {
 
   async function newItinerary() {
     setCreating(true);
-    try {
-      const itId = await createItinerary(settings, l);
-      if (["new", "contacted", "qualified"].includes(l.status)) await sb().from("leads").update({ status: "quoted" }).eq("id", l.id);
-      router.push(`/itineraries/${itId}`);
-    } catch (e: any) {
-      toast.error(e.message);
-      setCreating(false);
-    }
+    router.push(`/compose?lead=${l.id}`);
   }
 
   const pending = (rel.data?.fus ?? []).filter((f) => f.status === "pending");
@@ -117,7 +109,7 @@ function LeadDetail() {
           {l.phone && <Button variant="secondary" onClick={() => setCompose({ channel: "whatsapp", name: l.name, phone: l.phone, leadId: l.id, vars: { destination: l.destination } })}><MessageCircle className="h-4 w-4 text-emerald-600" /> WhatsApp</Button>}
           {l.email && <Button variant="secondary" onClick={() => setCompose({ channel: "email", name: l.name, email: l.email, leadId: l.id, vars: { destination: l.destination } })}><Mail className="h-4 w-4" /> Email</Button>}
           {can("leads", "edit") && <Button variant="secondary" onClick={() => setEdit(true)}><Pencil className="h-4 w-4" /> Edit</Button>}
-          {can("itineraries", "create") && <Button loading={creating} onClick={newItinerary}><Map className="h-4 w-4" /> Create itinerary</Button>}
+          {can("itineraries", "create") && <Button loading={creating} onClick={newItinerary}><Map className="h-4 w-4" /> Compose package</Button>}
         </div>
       </div>
 
@@ -227,7 +219,7 @@ function LeadDetail() {
             )}
           </Card>
 
-          <Card title="Quotes / itineraries" action={can("itineraries", "create") && <Button size="sm" variant="secondary" loading={creating} onClick={newItinerary}><Plus className="h-3.5 w-3.5" /> New</Button>}>
+          <Card title="Packages / quotes" action={can("itineraries", "create") && <Button size="sm" variant="secondary" loading={creating} onClick={newItinerary}><Plus className="h-3.5 w-3.5" /> New</Button>}>
             {(rel.data?.its ?? []).length === 0 && <p className="text-sm text-slate-400">No quote yet.</p>}
             <ul className="divide-y divide-slate-100">
               {(rel.data?.its ?? []).map((it: any) => (

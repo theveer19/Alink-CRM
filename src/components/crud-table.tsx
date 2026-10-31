@@ -7,11 +7,14 @@ import { downloadCsv, inr, parseCsv } from "@/lib/utils";
 import { useDebounced } from "@/lib/hooks";
 import { useAuth } from "./auth";
 import { Badge, Button, Card, ConfirmButton, Empty, Field, Input, Modal, Select, Spinner, Table, Td, Textarea, Th } from "./ui";
+import { ImagesField } from "./image-field";
 
 export type CrudField = {
   key: string;
   label: string;
-  type?: "text" | "number" | "money" | "select" | "textarea" | "date" | "bool";
+  type?: "text" | "number" | "money" | "select" | "textarea" | "date" | "bool" | "image" | "images" | "multiselect";
+  max?: number;            // images: how many photos
+  hint?: string;
   options?: { value: string; label: string }[];
   required?: boolean;
   list?: boolean;          // show in table
@@ -46,7 +49,7 @@ export function CrudTable({ table, title, fields, module = "masters", order = "n
 
   function blank() {
     const o: any = {};
-    fields.forEach((f) => (o[f.key] = f.default ?? (f.type === "bool" ? true : f.type === "number" || f.type === "money" ? 0 : "")));
+    fields.forEach((f) => (o[f.key] = f.default ?? (f.type === "bool" ? true : f.type === "number" || f.type === "money" ? 0 : f.type === "images" || f.type === "multiselect" ? [] : "")));
     return o;
   }
 
@@ -56,6 +59,7 @@ export function CrudTable({ table, title, fields, module = "masters", order = "n
       let v = o[f.key];
       if (f.type === "number" || f.type === "money") v = v === "" || v == null ? 0 : Number(v);
       else if (f.type === "bool") v = !!v && v !== "false";
+      else if (f.type === "images" || f.type === "multiselect") v = Array.isArray(v) ? v.filter(Boolean) : String(v ?? "").split(/[|\n]/).map((x) => x.trim()).filter(Boolean);
       else if (v === "") v = null;
       p[f.key] = v;
     });
@@ -98,6 +102,12 @@ export function CrudTable({ table, title, fields, module = "masters", order = "n
     if (f.type === "bool") return v ? <Badge className="bg-emerald-100 text-emerald-700">Yes</Badge> : <Badge>No</Badge>;
     if (f.type === "money") return inr(v);
     if (f.type === "select") return f.options?.find((o) => o.value === v)?.label ?? v ?? "—";
+    if (f.type === "image" || f.type === "images") {
+      const src = Array.isArray(v) ? v[0] : v;
+      // eslint-disable-next-line @next/next/no-img-element
+      return src ? <span className="inline-flex items-center gap-1"><img src={src} alt="" className="h-9 w-14 rounded object-cover" />{Array.isArray(v) && v.length > 1 ? <span className="text-[10px] text-slate-400">+{v.length - 1}</span> : null}</span> : <span className="text-[11px] text-slate-400">no photo</span>;
+    }
+    if (f.type === "multiselect") return (Array.isArray(v) && v.length ? v.map((x: string) => f.options?.find((o) => o.value === x)?.label ?? x).join(", ") : "—");
     return v == null || v === "" ? "—" : String(v);
   };
 
@@ -105,7 +115,7 @@ export function CrudTable({ table, title, fields, module = "masters", order = "n
     <Card title={title} bodyClass="p-0" action={
       <div className="flex flex-wrap gap-2">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-8 w-44 text-xs" />
-        <Button size="sm" variant="secondary" onClick={() => downloadCsv(`${table}.csv`, [fields.map((f) => f.key), ...rows.map((r) => fields.map((f) => r[f.key]))])}><Download className="h-3.5 w-3.5" /></Button>
+        <Button size="sm" variant="secondary" onClick={() => downloadCsv(`${table}.csv`, [fields.map((f) => f.key), ...rows.map((r) => fields.map((f) => (Array.isArray(r[f.key]) ? r[f.key].join("|") : r[f.key])))])}><Download className="h-3.5 w-3.5" /></Button>
         {can(module, "create") && (
           <label className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50" title="Import CSV (same columns as export)">
             <Upload className="h-3.5 w-3.5" /><input type="file" accept=".csv" hidden onChange={(e) => importCsv(e.target.files?.[0])} />
@@ -143,8 +153,23 @@ export function CrudTable({ table, title, fields, module = "masters", order = "n
         {edit && (
           <div className="grid grid-cols-2 gap-3">
             {fields.map((f) => (
-              <Field key={f.key} label={f.label} required={f.required} className={f.wide || f.type === "textarea" ? "col-span-2" : ""}>
-                {f.type === "select" ? (
+              <Field key={f.key} label={f.label} required={f.required} hint={f.hint} div={f.type === "images" || f.type === "image" || f.type === "multiselect"} className={f.wide || f.type === "textarea" || f.type === "images" || f.type === "image" || f.type === "multiselect" ? "col-span-2" : ""}>
+                {f.type === "images" || f.type === "image" ? (
+                  <ImagesField folder={table} max={f.type === "image" ? 1 : f.max ?? 4}
+                    value={f.type === "image" ? (edit[f.key] ? [edit[f.key]] : []) : edit[f.key] ?? []}
+                    onChange={(v) => setEdit({ ...edit, [f.key]: f.type === "image" ? v[0] ?? "" : v })} />
+                ) : f.type === "multiselect" ? (
+                  <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-slate-200 p-2">
+                    {f.options?.map((o) => {
+                      const on = (edit[f.key] ?? []).includes(o.value);
+                      return (
+                        <button type="button" key={o.value} onClick={() => setEdit({ ...edit, [f.key]: on ? (edit[f.key] ?? []).filter((x: string) => x !== o.value) : [...(edit[f.key] ?? []), o.value] })}
+                          className={on ? "rounded-full bg-brand-600 px-2.5 py-1 text-xs text-white" : "rounded-full border border-slate-300 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"}>{o.label}</button>
+                      );
+                    })}
+                    {!f.options?.length && <span className="text-xs text-slate-400">Nothing to choose yet</span>}
+                  </div>
+                ) : f.type === "select" ? (
                   <Select value={edit[f.key] ?? ""} onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value })}>
                     {!f.required && <option value="">—</option>}
                     {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}

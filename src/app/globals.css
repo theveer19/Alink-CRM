@@ -3,6 +3,46 @@
 @tailwind utilities;
 
 html { -webkit-font-smoothing: antialiased; }
+
+/* ---- themes (like the portal's Theme menu) — values are "r g b" ---- */
+:root, [data-theme="blue"] {
+  --brand-50: 239 246 255; --brand-100: 219 234 254; --brand-200: 191 219 254; --brand-300: 147 197 253; --brand-400: 96 165 250;
+  --brand-500: 59 130 246; --brand-600: 37 99 235; --brand-700: 29 78 216; --brand-800: 30 64 175; --brand-900: 30 58 138;
+  --side-bg: 15 27 45; --side-fg: 226 232 240; --side-muted: 148 163 184; --side-hover: 30 48 77;
+  --top-from: 30 58 138; --top-to: 37 99 235;
+}
+[data-theme="green"] {
+  --brand-50: 236 253 245; --brand-100: 209 250 229; --brand-200: 167 243 208; --brand-300: 110 231 183; --brand-400: 52 211 153;
+  --brand-500: 16 185 129; --brand-600: 5 150 105; --brand-700: 4 120 87; --brand-800: 6 95 70; --brand-900: 6 78 59;
+  --side-bg: 6 40 32; --side-fg: 220 252 231; --side-muted: 134 179 160; --side-hover: 12 66 52;
+  --top-from: 6 95 70; --top-to: 5 150 105;
+}
+[data-theme="indigo"] {
+  --brand-50: 238 242 255; --brand-100: 224 231 255; --brand-200: 199 210 254; --brand-300: 165 180 252; --brand-400: 129 140 248;
+  --brand-500: 99 102 241; --brand-600: 79 70 229; --brand-700: 67 56 202; --brand-800: 55 48 163; --brand-900: 49 46 129;
+  --side-bg: 30 27 75; --side-fg: 224 231 255; --side-muted: 165 170 220; --side-hover: 49 46 129;
+  --top-from: 55 48 163; --top-to: 79 70 229;
+}
+[data-theme="pink"] {
+  --brand-50: 253 242 248; --brand-100: 252 231 243; --brand-200: 251 207 232; --brand-300: 249 168 212; --brand-400: 244 114 182;
+  --brand-500: 236 72 153; --brand-600: 219 39 119; --brand-700: 190 24 93; --brand-800: 157 23 77; --brand-900: 131 24 67;
+  --side-bg: 80 7 36; --side-fg: 252 231 243; --side-muted: 222 160 190; --side-hover: 112 26 61;
+  --top-from: 157 23 77; --top-to: 219 39 119;
+}
+[data-theme="light"] {
+  --brand-50: 239 246 255; --brand-100: 219 234 254; --brand-200: 191 219 254; --brand-300: 147 197 253; --brand-400: 96 165 250;
+  --brand-500: 59 130 246; --brand-600: 37 99 235; --brand-700: 29 78 216; --brand-800: 30 64 175; --brand-900: 30 58 138;
+  --side-bg: 255 255 255; --side-fg: 30 41 59; --side-muted: 100 116 139; --side-hover: 241 245 249;
+  --top-from: 255 255 255; --top-to: 248 250 252;
+}
+[data-theme="dark"] {
+  --brand-50: 241 245 249; --brand-100: 226 232 240; --brand-200: 203 213 225; --brand-300: 148 163 184; --brand-400: 100 116 139;
+  --brand-500: 71 85 105; --brand-600: 51 65 85; --brand-700: 30 41 59; --brand-800: 15 23 42; --brand-900: 2 6 23;
+  --side-bg: 2 6 23; --side-fg: 226 232 240; --side-muted: 148 163 184; --side-hover: 30 41 59;
+  --top-from: 15 23 42; --top-to: 30 41 59;
+}
+.topbar { background: linear-gradient(90deg, rgb(var(--top-from)), rgb(var(--top-to))); }
+[data-theme="light"] .topbar { color: rgb(30 41 59); border-bottom: 1px solid rgb(226 232 240); }
 body { @apply bg-slate-50 text-slate-900; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 input[type="number"]::-webkit-inner-spin-button { opacity: .4; }

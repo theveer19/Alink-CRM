@@ -8,6 +8,7 @@ import type { Settings } from "@/lib/types";
 import { appUrl, fmtDateTime } from "@/lib/utils";
 import { useLoad } from "@/lib/hooks";
 import { Guard, useAuth } from "@/components/auth";
+import { THEMES } from "@/components/shell";
 import { Badge, Button, Card, ConfirmButton, Field, Input, PageHeader, Select, Spinner, Table, Tabs, Td, Textarea, Th } from "@/components/ui";
 
 export default function SettingsPage() {
@@ -30,7 +31,7 @@ function SettingsInner() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rest } = s as any;
     delete rest.updated_at;
-    ["default_markup_percent", "default_gst_percent", "default_tcs_percent", "unattended_hours"].forEach((k) => (rest[k] = Number(rest[k] || 0)));
+    ["default_markup_percent", "default_gst_percent", "default_tcs_percent", "unattended_hours", "default_margin_amount", "package_validity_days"].forEach((k) => (rest[k] = Number(rest[k] || 0)));
     const { error } = await sb().from("settings").update({ ...rest, updated_at: new Date().toISOString() }).eq("id", 1);
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -65,6 +66,13 @@ function SettingsInner() {
               <div className="flex gap-2"><input type="color" value={s.brand_color} onChange={set("brand_color")} className="h-9 w-12 rounded border" /><Input value={s.brand_color} onChange={set("brand_color")} /></div>
             </Field>
             <Field label="Phone"><Input value={s.phone ?? ""} onChange={set("phone")} /></Field>
+            <Field label="Phone 2"><Input value={s.phone2 ?? ""} onChange={set("phone2")} /></Field>
+            <Field label="WhatsApp number" hint="Sidebar & Customer Care WhatsApp button"><Input value={s.whatsapp ?? ""} onChange={set("whatsapp")} /></Field>
+            <Field label="Support email"><Input value={s.support_email ?? ""} onChange={set("support_email")} /></Field>
+            <Field label="Sales email"><Input value={s.sales_email ?? ""} onChange={set("sales_email")} /></Field>
+            <Field label="Default theme" hint="Each user can still pick a theme from the top bar">
+              <Select value={s.theme ?? "blue"} onChange={set("theme")}>{THEMES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</Select>
+            </Field>
             <Field label="Email"><Input value={s.email ?? ""} onChange={set("email")} /></Field>
             <Field label="Website"><Input value={s.website ?? ""} onChange={set("website")} /></Field>
             <Field label="Address" className="md:col-span-2"><Input value={s.address ?? ""} onChange={set("address")} /></Field>
@@ -96,6 +104,8 @@ function SettingsInner() {
               <Field label="GST charged on (quotes)"><Select value={s.gst_mode} onChange={set("gst_mode")}><option value="total">Whole package (5% tour operator)</option><option value="markup">Service fee only (18%)</option></Select></Field>
               <Field label="Default TCS %"><Select value={s.default_tcs_percent} onChange={set("default_tcs_percent")}>{[0, 2, 5, 20].map((g) => <option key={g} value={g}>{g}%</option>)}</Select></Field>
               <Field label="Default markup %"><Input type="number" value={s.default_markup_percent} onChange={set("default_markup_percent")} /></Field>
+              <Field label="Default package margin ₹" hint="Pre-filled Margin Amount on new packages"><Input type="number" value={s.default_margin_amount ?? 0} onChange={set("default_margin_amount")} /></Field>
+              <Field label="Package validity (days)"><Input type="number" value={s.package_validity_days ?? 15} onChange={set("package_validity_days")} /></Field>
             </div>
             <p className="mt-3 text-xs text-slate-500">Please confirm the GST rate / TCS rules that apply to your business with your CA — the CRM only calculates what you set.</p>
           </Card>
@@ -124,7 +134,7 @@ function SettingsInner() {
 
       {tab === "docs" && (
         <div className="grid gap-5 lg:grid-cols-2">
-          <Card title="Default itinerary terms"><Textarea rows={8} value={s.itinerary_terms ?? ""} onChange={set("itinerary_terms")} /></Card>
+          <Card title="Package terms & conditions (## heading, - bullet)"><Textarea rows={8} value={s.itinerary_terms ?? ""} onChange={set("itinerary_terms")} /></Card>
           <Card title="Voucher notes (printed on every voucher)"><Textarea rows={8} value={s.voucher_notes ?? ""} onChange={set("voucher_notes")} /></Card>
           <p className="text-xs text-slate-500 lg:col-span-2">Inclusion / exclusion / cancellation templates and WhatsApp / email messages are in Masters → Text &amp; message templates.</p>
         </div>

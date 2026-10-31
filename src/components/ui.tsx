@@ -55,16 +55,17 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
   );
 });
 
-export function Field({ label, children, hint, className, required }: { label: string; children: ReactNode; hint?: string; className?: string; required?: boolean }) {
+export function Field({ label, children, hint, className, required, div }: { label: string; children: ReactNode; hint?: string; className?: string; required?: boolean; div?: boolean }) {
+  const Tag = div ? "div" : "label";
   return (
-    <label className={cn("block space-y-1", className)}>
+    <Tag className={cn("block space-y-1", className)}>
       <span className="text-xs font-medium text-slate-600">
         {label}
         {required && <span className="text-rose-500"> *</span>}
       </span>
       {children}
       {hint && <span className="block text-[11px] text-slate-400">{hint}</span>}
-    </label>
+    </Tag>
   );
 }
 

@@ -25,6 +25,28 @@ function Bookings() {
   const [status, setStatus] = useState("");
   const [when, setWhen] = useState("upcoming");
   const [open, setOpen] = useState(false);
+  const [counts, setCounts] = useState({ week: 0, month: 0, year: 0, total: 0 });
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const supa = sb();
+      const now = new Date();
+      const today = isoDate();
+      const dow = (now.getDay() + 6) % 7;
+      const week = isoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow));
+      const month = today.slice(0, 8) + "01";
+      const year = today.slice(0, 5) + "01-01";
+      const c = async (since?: string) => {
+        let q = supa.from("bookings").select("id", { count: "exact", head: true }).neq("status", "cancelled");
+        if (since) q = q.gte("created_at", since);
+        return (await q).count ?? 0;
+      };
+      const [w, mo, y, t] = await Promise.all([c(week), c(month), c(year), c()]);
+      setCounts({ week: w, month: mo, year: y, total: t });
+    })();
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -32,6 +54,8 @@ function Bookings() {
     const t = dq.trim().replace(/[%,()]/g, "");
     if (t) qb = qb.or(`title.ilike.%${t}%,booking_no.ilike.%${t}%,destination.ilike.%${t}%,contact_name.ilike.%${t}%`);
     if (status) qb = qb.eq("status", status);
+    if (from) qb = qb.gte("created_at", `${from}T00:00:00`);
+    if (to) qb = qb.lte("created_at", `${to}T23:59:59.999`);
     const today = isoDate();
     if (when === "upcoming") qb = qb.gte("start_date", today).order("start_date");
     else if (when === "ongoing") qb = qb.lte("start_date", today).gte("end_date", today).order("start_date");
@@ -44,14 +68,19 @@ function Bookings() {
     setRows((data ?? []) as Booking[]);
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, [dq, status, when]);
+  useEffect(() => { load(); }, [dq, status, when, from, to]);
 
   const live = rows.filter((r) => r.status !== "cancelled");
   const sum = (k: keyof Booking) => live.reduce((a, r) => a + Number(r[k] ?? 0), 0);
 
   return (
     <>
-      <PageHeader title="Bookings / Trips" subtitle="Confirmed trips, services, supplier costs and collections" actions={
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {([["This Week", counts.week, "bg-brand-600"], [new Date().toLocaleString("en-IN", { month: "long" }), counts.month, "bg-slate-800"], [`Year ${new Date().getFullYear()}`, counts.year, "bg-sky-500"], ["Total Bookings", counts.total, "bg-emerald-600"]] as [string, number, string][]).map(([k, v, c]) => (
+          <div key={k} className={cn("rounded-2xl p-4 text-white shadow-card", c)}><p className="text-xs opacity-80">{k}</p><p className="text-2xl font-bold">{v}</p></div>
+        ))}
+      </div>
+      <PageHeader title="My Bookings" subtitle="Confirmed trips, services, supplier costs and collections" actions={
         <>
           <Button variant="secondary" onClick={() => downloadCsv(`bookings-${isoDate()}.csv`, [["Booking", "Title", "Customer", "Start", "End", "Status", "Sell", "Cost", "Profit", "Received", "Due"], ...rows.map((r) => [r.booking_no, r.title, r.contact_name, r.start_date, r.end_date, r.status, r.sell_amount, r.cost_amount, r.profit, r.received, r.balance_due])])}><Download className="h-4 w-4" /> Export</Button>
           {can("bookings", "create") && <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> New booking</Button>}
@@ -71,6 +100,7 @@ function Bookings() {
             <option value="due">Payment pending</option><option value="all">All (latest first)</option>
           </Select>
           <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-40"><option value="">All statuses</option>{BOOKING_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</Select>
+          <span className="flex items-center gap-1 text-xs text-slate-500">Booked from <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-36" /> to <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-36" /></span>
         </div>
       </Card>
       {loading ? <Spinner /> : (

@@ -9,7 +9,6 @@ import { BOOKING_STATUSES, INVOICE_STATUSES, LEAD_STATUSES, statusMeta } from "@
 import type { Contact, Lead } from "@/lib/types";
 import { fmtDate, inr } from "@/lib/utils";
 import { useLoad } from "@/lib/hooks";
-import { createItinerary } from "@/lib/actions";
 import { Guard, useAuth } from "@/components/auth";
 import { ContactForm } from "@/components/contact-form";
 import { LeadForm } from "@/components/lead-form";
@@ -72,7 +71,7 @@ function ContactDetail() {
           {ct.email && <Button variant="secondary" onClick={() => setCompose({ channel: "email", name: ct.name, email: ct.email })}><Mail className="h-4 w-4" /> Email</Button>}
           {can("contacts", "edit") && <Button variant="secondary" onClick={() => setEdit(true)}><Pencil className="h-4 w-4" /> Edit</Button>}
           {can("leads", "create") && <Button variant="secondary" onClick={() => setNewLead(true)}><Plus className="h-4 w-4" /> New enquiry</Button>}
-          {can("itineraries", "create") && <Button onClick={async () => { try { router.push(`/itineraries/${await createItinerary(settings, null, ct)}`); } catch (e: any) { toast.error(e.message); } }}><Map className="h-4 w-4" /> New quote</Button>}
+          {can("itineraries", "create") && <Button onClick={() => router.push(`/compose?contact=${ct.id}`)}><Map className="h-4 w-4" /> Compose package</Button>}
         </div>
       </div>
 

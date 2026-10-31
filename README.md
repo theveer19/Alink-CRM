@@ -28,7 +28,7 @@ Kanban pipeline · duplicate detection · round-robin assignment · unattended-l
 ### 1. Supabase
 1. Create a new project at supabase.com (region: Mumbai).
 2. Open **SQL Editor** and run these files one by one, in order (each is safe to re-run):
-   `supabase/001_schema.sql` → `supabase/002_hardening.sql` → `supabase/003_itinerary_v2.sql`
+   `supabase/001_schema.sql` → `supabase/002_hardening.sql` → `supabase/003_itinerary_v2.sql` → `supabase/004_regions.sql` → `supabase/005_portal.sql` (portal-style package composer)
 3. Under **Authentication → Providers → Email**, turn **off** "Allow new users to sign up". Admins add staff from the CRM.
 4. Under **Authentication → URL Configuration**, set the Site URL to your CRM domain.
 
@@ -67,3 +67,7 @@ Import the folder or repo in Vercel, add the same environment variables, and dep
 Next.js 14 (App Router, TypeScript) · Supabase (Postgres, Auth, RLS, Storage) · Tailwind · ExcelJS · qrcode.
 Pricing and tax maths live in `src/lib/pricing.ts`. Run its unit tests with `npm test`.
 Database logic (numbering, auto-contact, round-robin, follow-up sync, invoice paid status, audit log) is in SQL triggers in `supabase/001_schema.sql`.
+
+## Package composer (works like b2btourportal.com)
+Setup order in **Masters**: States → Packages (+ Points: pick up / drop with city) → Cities → Places (day plans: type, starts from, ends at, night-stay options, photos, description, **Cab rates**) → Hotels (photos, description, category, **Rates** room-wise MAP/CP by season) → Vehicles → Inclusions / exclusions → Offers / discount / promo.
+Then **Compose Package** → state card → package card → fill Client / Dates / Persons / Vehicles → pick each day's Place, Night stay, Category, Hotel, Room → tick inclusions → Margin / GST → **Calculate & Save**. The package view / PDF is at *Package* button; **Confirm** creates the booking.

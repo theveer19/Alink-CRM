@@ -8,6 +8,7 @@ import { cn, fmtDate, fmtDateTime, inr, isoDate, timeAgo, addDays } from "@/lib/
 import { useLoad } from "@/lib/hooks";
 import { Guard, useAuth } from "@/components/auth";
 import { Badge, Bar, Card, PageHeader, Select, Spinner, Stat } from "@/components/ui";
+import { PackagesBoard } from "@/components/packages-board";
 
 export default function DashboardPage() {
   return <Guard module="dashboard"><Dashboard /></Guard>;
@@ -111,6 +112,8 @@ function Dashboard() {
         </>
       } />
 
+      {can("itineraries") && <div className="mb-6"><PackagesBoard compact /></div>}
+      <p className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-600">CRM overview</p>
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {can("leads") && <Stat label="New leads" value={periodLeads.length} sub={`${r.todayLeads?.count ?? 0} today`} icon={<Users className="h-5 w-5" />} />}
         {can("leads") && <Stat label="Open pipeline" value={open.length} sub={`${open.filter((l) => l.status === "new").length} not contacted`} icon={<TrendingUp className="h-5 w-5" />} tone="violet" />}
